@@ -1,6 +1,6 @@
 # -*- coding:UTF-8 -*-
 import RPi.GPIO as GPIO
-from tracking import *
+from final import *
 import time
 
 speed_fast = 100

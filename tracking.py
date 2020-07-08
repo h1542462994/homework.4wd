@@ -1,7 +1,9 @@
+
 # -*- coding:UTF-8 -*-
 import RPi.GPIO as GPIO
 import time
 
+# version : 3
 # 小车电机引脚定义
 IN1 = 20
 IN2 = 21
@@ -28,10 +30,10 @@ GPIO.setmode(GPIO.BCM)
 # 忽略警告信息
 GPIO.setwarnings(False)
 
-speed_fast = 30  # 块
-speed_middle = 25  # 小弯的速度
-speed_slow = 20
-speed_veryslow = 18
+speed_fast = 15  # 块
+speed_middle = 13  # 小弯的速度
+speed_slow = 12
+speed_veryslow = 10
 time_sleep = 0.005
 
 # 电机引脚初始化为输出模式
@@ -162,28 +164,29 @@ def doing():
             # 未检测到黑线时循迹模块相应的指示灯灭，端口电平为HIGH
             (TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1, TrackSensorRightValue2) = track_sensor()
 
+
             # car_state: 0=在预定轨迹内，1=第一次偏离轨迹，2=非第一次偏离轨迹
             if TrackSensorLeftValue2 == 0 or TrackSensorRightValue1 == 0:
                 car_state = 0
-                cross_state = 1
             else:
-                if TrackSensorLeftValue2Old == 0 or TrackSensorRightValue2 == 0:
-                    cross_state = 1
-                else:
-                    cross_state = 0
                 car_state = 1
 
-            if car_state == 1 and cross_state == 1:
-                if TrackSensorLeftValue1Old == False and TrackSensorRightValue2Old == False:
-                    run(0, 0)
-                    time.sleep(time_sleep)
+            if car_state == 1:
+                # if TrackSensorLeftValue2Old == False and TrackSensorRightValue1Old == False:
+                #     while True:
+                #         brake()
+                #         time.sleep(time_sleep)
+                #         (TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1,
+                #          TrackSensorRightValue2) = track_sensor()
+                #         if TrackSensorLeftValue2 == 0 or TrackSensorRightValue1 == 0:
+                #             break
 
                 # 四路循迹引脚电平状态
                 # X X X 0
                 # 以上6种电平状态时小车原地右转
                 # 处理右锐角和右直角的转动
                 if TrackSensorRightValue2Old == False:
-                    spin_right(speed_slow, speed_veryslow)
+                    spin_right(speed_slow, speed_slow)
                     if TrackSensorRightValue2 != TrackSensorRightValue2Old:
                         time.sleep(time_sleep)
 
@@ -191,28 +194,27 @@ def doing():
                 # 0 X X X
                 # 处理左锐角和左直角的转动
                 elif TrackSensorLeftValue1Old == False:
-                    spin_left(speed_veryslow, speed_slow)
+                    spin_left(speed_slow, speed_slow)
                     if TrackSensorLeftValue1 != TrackSensorLeftValue1Old:
                         time.sleep(time_sleep)
 
-            elif car_state == 0:
-                # 四路循迹引脚电平状态
-                # X 0 1 X
-                # 处理左小弯
-                if TrackSensorLeftValue2 == False and TrackSensorRightValue1 == True:
-                    left(0, speed_middle)
+            # 四路循迹引脚电平状态
+            # X 0 1 X
+            # 处理左小弯
+            elif TrackSensorLeftValue2 == False and TrackSensorRightValue1 == True:
+                left(0, speed_middle)
 
-                # 四路循迹引脚电平状态
-                # X 1 0 X
-                # 处理右小弯
-                elif TrackSensorLeftValue2 == True and TrackSensorRightValue1 == False:
-                    right(speed_middle, 0)
+            # 四路循迹引脚电平状态
+            # X 1 0 X
+            # 处理右小弯
+            elif TrackSensorLeftValue2 == True and TrackSensorRightValue1 == False:
+                right(speed_middle, 0)
 
-                # 四路循迹引脚电平状态
-                # X 0 0 X
-                # 处理直线
-                elif TrackSensorLeftValue2 == False and TrackSensorRightValue1 == False:
-                    run(speed_fast, speed_fast)
+            # 四路循迹引脚电平状态
+            # X 0 0 X
+            # 处理直线
+            elif TrackSensorLeftValue2 == False and TrackSensorRightValue1 == False:
+                run(speed_fast, speed_fast)
 
             # 当为1 1 1 1时小车保持上一个小车运行状态
             TrackSensorLeftValue1Old, TrackSensorLeftValue2Old, TrackSensorRightValue1Old, TrackSensorRightValue2Old = TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1, TrackSensorRightValue2
