@@ -30,10 +30,10 @@ GPIO.setmode(GPIO.BCM)
 # 忽略警告信息
 GPIO.setwarnings(False)
 
-speed_fast = 15  # 块
-speed_middle = 13  # 小弯的速度
-speed_slow = 12
-speed_veryslow = 10
+speed_fast = 40 # 块
+speed_middle = 37  # 小弯的速度
+speed_slow = 30
+speed_veryslow = 28
 time_sleep = 0.005
 
 # 电机引脚初始化为输出模式
