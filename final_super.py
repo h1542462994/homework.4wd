@@ -43,13 +43,14 @@ GPIO.setmode(GPIO.BCM)
 # 忽略警告信息
 GPIO.setwarnings(False)
 
-speed_fast = 20  # 块
-speed_middle = 18  # 小弯的速度
-speed_slow = 15
-speed_veryslow = 12
+speed_fast = 40  # 块
+speed_middle = 35  # 小弯的速度
+speed_slow = 30
+speed_veryslow = 28
 time_sleep = 0.005
 sonic_sleep = 5
-sonic_distance = 30
+sonic_distance = 40
+end_distance = 20
 
 angle_right = 45
 angle_front = 80
@@ -176,8 +177,12 @@ def brake():
 
 # 按键检测
 def key_scan():
-    if not GPIO.input(key):
+    while GPIO.input(key):
+        pass
+    while not GPIO.input(key):
         time.sleep(0.01)
+        if not GPIO.input(key):
+            time.sleep(0.01)
         while not GPIO.input(key):
             pass
 
@@ -294,101 +299,109 @@ def doing():
     # 从而让except语句捕获异常信息并处理。
     try:
         init()
-        while True:
+        key_scan()
+        (TrackSensorLeftValue1Old, TrackSensorLeftValue2Old, TrackSensorRightValue1Old, TrackSensorRightValue2Old) = (True, True, True, True)
+        # car_state = 1
+        distance_old = 100
+        last_tick = time.time() - sonic_sleep - 1
+        run_state = -1
+        servo_appointed_detection(angle_front)
+        while blood > 0:
+            # 检测到黑线时循迹模块相应的指示灯亮，端口电平为LOW
+            # 未检测到黑线时循迹模块相应的指示灯灭，端口电平为HIGH
+            (TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1, TrackSensorRightValue2) = track_sensor()
 
-            key_scan()
-            (TrackSensorLeftValue1Old, TrackSensorLeftValue2Old, TrackSensorRightValue1Old, TrackSensorRightValue2Old) = (True, True, True, True)
-            # car_state = 1
-            distance_old = 100
-            last_tick = time.time() - sonic_sleep - 1
-            run_state = -1
-            servo_appointed_detection(angle_front)
-            while blood > 0:
-                # 检测到黑线时循迹模块相应的指示灯亮，端口电平为LOW
-                # 未检测到黑线时循迹模块相应的指示灯灭，端口电平为HIGH
-                (TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1, TrackSensorRightValue2) = track_sensor()
-
-                # car_state: 0=在预定轨迹内，1=第一次偏离轨迹，2=非第一次偏离轨迹
-                if TrackSensorLeftValue2 == 0 or TrackSensorRightValue1 == 0:
-                    car_state = 0
-                else:
+            # car_state: 0=在预定轨迹内，1=第一次偏离轨迹，2=非第一次偏离轨迹
+            if TrackSensorLeftValue2 == 0 or TrackSensorRightValue1 == 0:
+                car_state = 0
+            else:
+                if TrackSensorLeftValue2Old == 0 or TrackSensorRightValue1Old == 0:
                     car_state = 1
+                else:
+                    car_state = 2
 
-                if car_state == 1:
-                    # if TrackSensorLeftValue2Old == False and TrackSensorRightValue1Old == False:
-                    #     if distance < 60:
-                    #         while True:
-                    #             brake()
-                    #             time.sleep(time_sleep)
-                    #             (TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1,
-                    #              TrackSensorRightValue2) = track_sensor()
-                    #             if TrackSensorLeftValue2 == 0 or TrackSensorRightValue1 == 0:
-                    #                 break
-                    #     else:
-                    #         pass
-
-                    # 四路循迹引脚电平状态
-                    # X X X 0
-                    # 以上6种电平状态时小车原地右转
-                    # 处理右锐角和右直角的转动
-                    if TrackSensorRightValue2Old == False:
-                        run_state = 0
-                        do_state(run_state)
-                        if TrackSensorRightValue2 != TrackSensorRightValue2Old:
-                            time.sleep(time_sleep)
-
-                    # 四路循迹引脚电平状态
-                    # 0 X X X
-                    # 处理左锐角和左直角的转动
-                    elif TrackSensorLeftValue1Old == False:
-                        run_state = 1
-                        do_state(run_state)
-                        if TrackSensorLeftValue1 != TrackSensorLeftValue1Old:
-                            time.sleep(time_sleep)
+            if car_state == 1:
+                # if TrackSensorLeftValue2Old == False and TrackSensorRightValue1Old == False:
+                #     d = distance_test()
+                #     if d < end_distance:
+                #         # time.sleep(time_sleep)
+                #         # (TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1,
+                #         #  TrackSensorRightValue2) = track_sensor()
+                #         # if TrackSensorLeftValue1 == 1 and TrackSensorLeftValue2 == 1 and TrackSensorRightValue1 == 1 and TrackSensorRightValue2 == 1:
+                #         brake()
+                #         while True:
+                #             time.sleep(time_sleep)
+                #             (TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1,
+                #              TrackSensorRightValue2) = track_sensor()
+                #             light(1, 0, 0)
+                #             if TrackSensorLeftValue2 == 0 or TrackSensorRightValue1 == 0:
+                #                 break
+                #     else:
+                #         pass
 
                 # 四路循迹引脚电平状态
-                # X 0 1 X
-                # 处理左小弯
-                elif TrackSensorLeftValue2 == False and TrackSensorRightValue1 == True:
-                    run_state = 3
+                # X X X 0
+                # 以上6种电平状态时小车原地右转
+                # 处理右锐角和右直角的转动
+                if TrackSensorRightValue2Old == False:
+                    run_state = 0
                     do_state(run_state)
+                    time.sleep(time_sleep)
 
                 # 四路循迹引脚电平状态
-                # X 1 0 X
-                # 处理右小弯
-                elif TrackSensorLeftValue2 == True and TrackSensorRightValue1 == False:
-                    run_state = 2
+                # 0 X X X
+                # 处理左锐角和左直角的转动
+                elif TrackSensorLeftValue1Old == False:
+                    run_state = 1
                     do_state(run_state)
+                    time.sleep(time_sleep)
 
-                # 四路循迹引脚电平状态
-                # X 0 0 X
-                # 处理直线
-                elif TrackSensorLeftValue2 == False and TrackSensorRightValue1 == False:
-                    run_state = 4
+            elif car_state == 2:
+                run_state = 0
+                do_state(run_state)
+
+            # 四路循迹引脚电平状态
+            # X 0 1 X
+            # 处理左小弯
+            elif TrackSensorLeftValue2 == False and TrackSensorRightValue1 == True:
+                run_state = 3
+                do_state(run_state)
+
+            # 四路循迹引脚电平状态
+            # X 1 0 X
+            # 处理右小弯
+            elif TrackSensorLeftValue2 == True and TrackSensorRightValue1 == False:
+                run_state = 2
+                do_state(run_state)
+
+            # 四路循迹引脚电平状态
+            # X 0 0 X
+            # 处理直线
+            elif TrackSensorLeftValue2 == False and TrackSensorRightValue1 == False:
+                run_state = 4
+                do_state(run_state)
+
+            # 当为1 1 1 1时小车保持上一个小车运行状态
+            TrackSensorLeftValue1Old, TrackSensorLeftValue2Old, TrackSensorRightValue1Old, TrackSensorRightValue2Old = TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1, TrackSensorRightValue2
+
+            # 显示血量
+            blood_time = time.time() % 3
+            if blood_time < blood * 0.4:
+                b_time = blood_time % 0.4
+                if b_time < 0.2:
+                    light(0, 1, 0)
+
+            distance = distance_test()
+
+            if distance < sonic_distance and distance_old >= sonic_distance:
+                current_tick = time.time()
+                if current_tick - last_tick > sonic_sleep:
+                    brake()
+                    do_scan()
                     do_state(run_state)
-
-                # 当为1 1 1 1时小车保持上一个小车运行状态
-                TrackSensorLeftValue1Old, TrackSensorLeftValue2Old, TrackSensorRightValue1Old, TrackSensorRightValue2Old = TrackSensorLeftValue1, TrackSensorLeftValue2, TrackSensorRightValue1, TrackSensorRightValue2
-
-                # 显示血量
-                blood_time = time.time() % 2
-                if blood_time < blood * 0.4:
-                    b_time = blood_time % 0.4
-                    if b_time < 0.2:
-                        light(0, 1, 0)
-
-                distance = distance_test()
-
-                if distance < sonic_distance and distance_old >= sonic_distance:
-                    current_tick = time.time()
-                    if current_tick - last_tick > sonic_sleep:
-                        brake()
-                        do_scan()
-                        do_state(run_state)
-                        last_tick = current_tick
-                        blood = blood - 1
-                distance_old = distance
-            brake()
+                    last_tick = current_tick
+                    blood = blood - 1
+            distance_old = distance
     except KeyboardInterrupt:
         pass
     pwm_ENA.stop()

@@ -30,10 +30,10 @@ GPIO.setmode(GPIO.BCM)
 # 忽略警告信息
 GPIO.setwarnings(False)
 
-speed_fast = 20  # 块
-speed_middle = 18  # 小弯的速度
-speed_slow = 15
-speed_veryslow = 12
+speed_fast = 25  # 块
+speed_middle = 22  # 小弯的速度
+speed_slow = 20
+speed_veryslow = 18
 time_sleep = 0.005
 
 # 电机引脚初始化为输出模式
@@ -169,7 +169,10 @@ def doing():
             if TrackSensorLeftValue2 == 0 or TrackSensorRightValue1 == 0:
                 car_state = 0
             else:
-                car_state = 1
+                if TrackSensorLeftValue2Old == 0 or TrackSensorRightValue1Old == 0:
+                    car_state = 1
+                else:
+                    car_state = 2
 
             if car_state == 1:
                 # if TrackSensorLeftValue2Old == False and TrackSensorRightValue1Old == False:
